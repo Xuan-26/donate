@@ -11,6 +11,7 @@ use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
 $channelAccessToken = 'qyi50N+v38twzJJXGJENtKyW9Loa8t9egaEljwt3dvMiveTkhwG8HzkCHAdslCXtVWz071ziUOw+zOkNA7Jt1J5eINJoz8ESquDX6B3htGz+OOlxydAIqZOO7shERDCfiBWhT9SAY9+4kKfLMIzZLgdB04t89/1O/w1cDnyilFU=';
 $channelSecret = '1a4af244b82ad85d6624481378411f43';
 
+// 確保自動加載正確並加載 SDK
 $httpClient = new CurlHTTPClient($channelAccessToken);
 $bot = new LINEBot($httpClient, ['channelSecret' => $channelSecret]);
 
@@ -30,8 +31,10 @@ if ($conn->connect_error) {
 $content = file_get_contents('php://input');
 $events = json_decode($content, true);
 
+// 確保有接收到事件
 if (!is_null($events['events'])) {
     foreach ($events['events'] as $event) {
+        // 確保事件類型是文字消息
         if ($event['type'] == 'message' && $event['message']['type'] == 'text') {
             $orderId = $event['message']['text']; // 使用者輸入的訂單編號
             $replyToken = $event['replyToken'];
@@ -62,4 +65,3 @@ if (!is_null($events['events'])) {
 $conn->close();
 
 ?>
-
