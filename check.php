@@ -1,15 +1,17 @@
 <?php
 
-require 'vendor/autoload.php';
+// 確保正確引用 Composer 的自動加載文件
+require __DIR__ . '/vendor/autoload.php';
 
 use LINE\LINEBot;
 use LINE\LINEBot\HTTPClient\CurlHTTPClient;
 use LINE\LINEBot\MessageBuilder\TextMessageBuilder;
 
-// LINE Bot 設定
-$channelAccessToken = 'qyi50N+v38twzJJXGJENtKyW9Loa8t9egaEljwt3dvMiveTkhwG8HzkCHAdslCXtVWz071ziUOw+zOkNA7Jt1J5eINJoz8ESquDX6B3htGz+OOlxydAIqZOO7shERDCfiBWhT9SAY9+4kKfLMIzZLgdB04t89/1O/w1cDnyilFU=';
-$channelSecret = '1a4af244b82ad85d6624481378411f43';
+// 使用環境變數來保護敏感資訊
+$channelAccessToken = getenv('LINE_CHANNEL_ACCESS_TOKEN');
+$channelSecret = getenv('LINE_CHANNEL_SECRET');
 
+// 初始化 LINE Bot
 $httpClient = new CurlHTTPClient($channelAccessToken);
 $bot = new LINEBot($httpClient, ['channelSecret' => $channelSecret]);
 
@@ -19,10 +21,15 @@ $username = "CS380B";
 $password = "YZUCS380B";
 $dbname = "CS380B";
 
-// 建立 MySQL 資料庫連接
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+try {
+    // 建立 MySQL 資料庫連接
+    $conn = new mysqli($servername, $username, $password, $dbname);
+    if ($conn->connect_error) {
+        throw new Exception("Connection failed: " . $conn->connect_error);
+    }
+} catch (Exception $e) {
+    error_log($e->getMessage());
+    exit("無法連接至資料庫");
 }
 
 // 取得 Webhook 資料
@@ -32,7 +39,6 @@ $events = json_decode($content, true);
 if (!is_null($events['events'])) {
     foreach ($events['events'] as $event) {
         if ($event['type'] == 'message' && $event['message']['type'] == 'text') {
-            // 取得用戶輸入的訂單編號
             $orderId = $event['message']['text'];
             $replyToken = $event['replyToken'];
 
@@ -50,7 +56,6 @@ if (!is_null($events['events'])) {
                 $replyMessage = new TextMessageBuilder("抱歉，未找到您的訂單紀錄，請確認您的訂單編號是否正確。");
             }
 
-            // 回覆用戶
             $bot->replyMessage($replyToken, $replyMessage);
         }
     }
@@ -63,14 +68,11 @@ function checkOrderStatus($conn, $orderId) {
     $stmt->execute();
     $result = $stmt->get_result();
     
-    if ($result->num_rows > 0) {
-        return $result->fetch_assoc();
-    } else {
-        return null;
-    }
+    return $result->num_rows > 0 ? $result->fetch_assoc() : null;
 }
 
 // 關閉資料庫連接
 $conn->close();
 
 ?>
+
